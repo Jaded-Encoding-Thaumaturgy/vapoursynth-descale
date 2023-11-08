@@ -7,7 +7,6 @@ Includes a VapourSynth and AviSynth+ plugin
 ## Usage
 
 The VapourSynth plugin itself supports every constant input format. If the format is subsampled, left-aligned chroma planes are always assumed.
-The included python wrapper, contrary to using the plugin directly, doesn't descale the chroma planes but scales them normally with `Spline36`.
 
 ```
 descale.Debilinear(clip src, int width, int height, float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
@@ -40,10 +39,6 @@ def sinc(x):
     return 1.0 if x == 0 else math.sin(x * math.pi) / (x * math.pi)
 taps = 3
 core.descale.Descale(src, w, h, custom_kernel=lambda x: sinc(x) * sinc(x / taps), taps=taps)
-
-# You can also use the python wrapper instead of calling the plugin functions directly
-import descale
-descale.Decustom(src, w, h, lambda x: 1.0 - x, taps=1)
 ```
 
 ## How does this work?
