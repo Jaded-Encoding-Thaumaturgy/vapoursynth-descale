@@ -21,7 +21,7 @@ descale.Despline36(clip src, int width, int height, float blur=1.0, float src_le
 
 descale.Despline64(clip src, int width, int height, float blur=1.0, float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 
-descale.Descale(clip src, int width, int height, str kernel, func custom_kernel, int taps=3, float b=0.0, float c=0.0, float blur=1.0, float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
+descale.Decustom(clip src, int width, int height, func custom_kernel, int taps=3, float blur=1.0, float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 ```
 
 The `border_handling` argument can take the following values:
@@ -41,14 +41,14 @@ Custom kernels and ignore masks are only supported in the VapourSynth plugin.
 
 ```python
 # Debilinear
-core.descale.Descale(src, w, h, custom_kernel=lambda x: 1.0 - x, taps=1)
+core.descale.Decustom(src, w, h, custom_kernel=lambda x: 1.0 - x, taps=1)
 
 # Delanczos
 import math
 def sinc(x):
     return 1.0 if x == 0 else math.sin(x * math.pi) / (x * math.pi)
 taps = 3
-core.descale.Descale(src, w, h, custom_kernel=lambda x: sinc(x) * sinc(x / taps), taps=taps)
+core.descale.Decustom(src, w, h, custom_kernel=lambda x: sinc(x) * sinc(x / taps), taps=taps)
 ```
 
 ## How does this work?
