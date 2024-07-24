@@ -8,7 +8,7 @@ This fork only supports VapourSynth, none of the new options are mapped in AviSy
 
 The VapourSynth plugin itself supports every constant input format. If the format is subsampled, left-aligned chroma planes are always assumed.
 
-```
+```python
 descale.Debilinear(clip src, int width, int height, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 
 descale.Debicubic(clip src, int width, int height, float b=0.0, float c=0.5, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
