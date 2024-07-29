@@ -1,7 +1,7 @@
 project('Descale', 'c',
     default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99'],
     meson_version: '>=0.51.0',
-    version: '9'
+    version: '10'
 )
 
 add_global_arguments(['-D_XOPEN_SOURCE=700'], language: 'c')
