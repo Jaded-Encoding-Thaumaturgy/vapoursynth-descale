@@ -49,6 +49,7 @@ struct VSCustomKernelData
 {
     const VSAPI *vsapi;
     VSFunction *custom_kernel;
+    VSMap *cache;
 };
 
 
@@ -159,6 +160,7 @@ static void VS_CC descale_free(void *instance_data, VSCore *core, const VSAPI *v
     if (d->dd.params.mode == DESCALE_MODE_CUSTOM) {
         struct VSCustomKernelData *kd = (struct VSCustomKernelData *)d->dd.params.custom_kernel.user_data;
         vsapi->freeFunction(kd->custom_kernel);
+        vsapi->freeMap(kd->cache);
         free(kd);
     }
 
@@ -170,6 +172,17 @@ static double custom_kernel_f(double x, void *user_data)
 {
     struct VSCustomKernelData *kd = (struct VSCustomKernelData *)user_data;
 
+    // Check cache first. Note that an undocumented `VSMap` requirement is that
+    // keys must not start with a digit, hence the "k" prefix.
+    unsigned long long y;
+    memcpy(&y, &x, sizeof y);
+    char cache_key[64];
+    snprintf(cache_key, sizeof(cache_key), "k%llu", y);
+    int err;
+    double cached = kd->vsapi->mapGetFloat(kd->cache, cache_key, 0, &err);
+    if (!err)
+        return cached;
+
     VSMap *in = kd->vsapi->createMap();
     VSMap *out = kd->vsapi->createMap();
     kd->vsapi->mapSetFloat(in, "x", x, maReplace);
@@ -180,7 +193,7 @@ static double custom_kernel_f(double x, void *user_data)
         kd->vsapi->freeMap(out);
         return 0.0;
     }
-    int err;
+
     x = kd->vsapi->mapGetFloat(out, "val", 0, &err);
     if (err)
         x = (double)kd->vsapi->mapGetInt(out, "val", 0, &err);
@@ -188,6 +201,9 @@ static double custom_kernel_f(double x, void *user_data)
         fprintf(stderr, "Descale: custom kernel: The custom kernel function returned a value that is neither float nor int.");
         x = 0.0;
     }
+
+    kd->vsapi->mapSetFloat(kd->cache, cache_key, x, maReplace);
+
     kd->vsapi->freeMap(in);
     kd->vsapi->freeMap(out);
 
@@ -246,6 +262,7 @@ static void VS_CC descale_create(const VSMap *in, VSMap *out, void *user_data, V
         struct VSCustomKernelData *kd = malloc(sizeof (struct VSCustomKernelData));
         kd->vsapi = vsapi;
         kd->custom_kernel = custom_kernel;
+        kd->cache = vsapi->createMap();
 
         params.custom_kernel.f = &custom_kernel_f;
         params.custom_kernel.user_data = kd;
