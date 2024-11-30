@@ -76,12 +76,12 @@ To build the AviSynth+ plugin, add `-Dlibtype=avisynth` or `-Dlibtype=both` to t
 ### Linux
 
 ```
-$ meson build
+$ meson setup build
 $ ninja -C build
 ```
 
 ### Cross-compilation for Windows
 ```
-$ meson build --cross-file cross-mingw-x86_64.txt
+$ meson setup build --cross-file cross-mingw-x86_64.txt
 $ ninja -C build
 ```

@@ -1,6 +1,6 @@
 project('Descale', 'c',
     default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99'],
-    meson_version: '>=0.51.0',
+    meson_version: '>=0.56.0',
     version: '9'
 )
 
@@ -57,9 +57,9 @@ else
         deps += [avs]
     endif
     if libtype in ['vapoursynth', 'both']
-        installdir = join_paths(vs.get_pkgconfig_variable('libdir'), 'vapoursynth')
+        installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
     else
-        installdir = join_paths(avs.get_pkgconfig_variable('libdir'), 'avisynth')
+        installdir = join_paths(avs.get_variable(pkgconfig: 'libdir'), 'avisynth')
     endif
 endif
 
