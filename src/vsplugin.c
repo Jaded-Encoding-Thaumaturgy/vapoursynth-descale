@@ -222,19 +222,26 @@ static void VS_CC descale_create(const VSMap *in, VSMap *out, void *user_data, V
 
     switch(params.mode) {
         case DESCALE_MODE_BILINEAR:
-            funcname = "Debilinear"; break;
+            funcname = params.upscale ? "Bilinear" : "Debilinear"; 
+            break;
         case DESCALE_MODE_BICUBIC:
-            funcname = "Debicubic"; break;
+            funcname = params.upscale ? "Bicubic" : "Debicubic"; 
+            break;
         case DESCALE_MODE_LANCZOS:
-            funcname = "Delanczos"; break;
+            funcname = params.upscale ? "Lanczos" : "Delanczos"; 
+            break;
         case DESCALE_MODE_SPLINE16:
-            funcname = "Despline16"; break;
+            funcname = params.upscale ? "Spline16" : "Despline16"; 
+            break;
         case DESCALE_MODE_SPLINE36:
-            funcname = "Despline36"; break;
+            funcname = params.upscale ? "Spline36" : "Despline36"; 
+            break;
         case DESCALE_MODE_SPLINE64:
-            funcname = "Despline64"; break;
+            funcname = params.upscale ? "Spline64" : "Despline64"; 
+            break;
         case DESCALE_MODE_CUSTOM:
-            funcname = "Decustom"; break;
+            funcname = params.upscale ? "ScaleCustom" : "Decustom"; 
+            break;
         default:
             vsapi->mapSetError(out, get_error("Descale", "Wrong API use!"));
             return;
