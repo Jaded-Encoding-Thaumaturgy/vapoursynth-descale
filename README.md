@@ -21,7 +21,7 @@ descale.Despline36(clip src, int width, int height, float blur=1.0, float[] post
 
 descale.Despline64(clip src, int width, int height, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 
-descale.Depoint(clip src, int width, int height, func custom_kernel, int taps=3, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
+descale.Depoint(clip src, int width, int height, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 
 descale.Decustom(clip src, int width, int height, func custom_kernel, int taps=3, float blur=1.0, float[] post_conv=[], float src_left=0.0, float src_top=0.0, float src_width=width, float src_height=height, int border_handling=0, clip ignore_mask=None, bool force=false, bool force_h=false, bool force_v=false, int opt=0)
 ```
