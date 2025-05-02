@@ -29,9 +29,18 @@
 #include "common.h"
 #include "x86/descale_avx2.h"
 
+#ifdef _MSC_VER
+#define PORTABLE_FORCE_INLINE __forceinline
+#define restrict __restrict
+#elif defined(__GNUC__) || defined(__clang__)
+#define PORTABLE_FORCE_INLINE inline __attribute__((always_inline))
+#else
+#define PORTABLE_FORCE_INLINE inline
+#define restrict
+#endif
 
 // Taken from zimg https://github.com/sekrit-twc/zimg
-static inline __attribute__((always_inline)) void mm256_transpose8_ps(__m256 *row0, __m256 *row1, __m256 *row2, __m256 *row3, __m256 *row4, __m256 *row5, __m256 *row6, __m256 *row7)
+static PORTABLE_FORCE_INLINE void mm256_transpose8_ps(__m256 *row0, __m256 *row1, __m256 *row2, __m256 *row3, __m256 *row4, __m256 *row5, __m256 *row6, __m256 *row7)
 {
     __m256 t0, t1, t2, t3, t4, t5, t6, t7;
     __m256 tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7;
@@ -66,7 +75,7 @@ static inline __attribute__((always_inline)) void mm256_transpose8_ps(__m256 *ro
 
 
 // Taken from zimg https://github.com/sekrit-twc/zimg
-static inline __attribute__((always_inline)) void transpose_line_8x8_ps(float * restrict dst, const float * restrict src, int src_stride, int left, int right)
+static PORTABLE_FORCE_INLINE void transpose_line_8x8_ps(float * restrict dst, const float * restrict src, int src_stride, int left, int right)
 {
     for (int j = left; j < right; j += 8) {
         __m256 x0, x1, x2, x3, x4, x5, x6, x7;

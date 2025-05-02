@@ -21,13 +21,49 @@
  */
 
 
+#ifndef _MSC_VER
 #include <pthread.h>
+#endif // !_MSC_VER
+
 #include <stdbool.h>
 #include <stdlib.h>
-#include <avisynth/avisynth_c.h>
+#include <avisynth_c.h>
 #include "descale.h"
 #include "plugin.h"
 
+#ifdef _MSC_VER
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif // !WIN32_LEAN_AND_MEAN
+
+#include <windows.h>
+
+typedef CRITICAL_SECTION pthread_mutex_t;
+
+static inline int portable_mutex_init(pthread_mutex_t* mutex) {
+    InitializeCriticalSection(mutex);
+    return 0;
+}
+
+static inline int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
+    return 0;
+}
+
+static inline int pthread_mutex_lock(pthread_mutex_t* mutex) {
+    EnterCriticalSection(mutex);
+    return 0;
+}
+
+static inline int pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    LeaveCriticalSection(mutex);
+    return 0;
+}
+#else
+static inline int portable_mutex_init(pthread_mutex_t* mutex) {
+    return pthread_mutex_init(mutex, NULL);
+}
+#endif // _MSC_VER
 
 struct AVSDescaleData
 {
@@ -335,7 +371,7 @@ static AVS_Value AVSC_CC avs_descale_create(AVS_ScriptEnvironment *env, AVS_Valu
 
     struct AVSDescaleData *data = calloc(1, sizeof (struct AVSDescaleData));
     data->dd = dd;
-    pthread_mutex_init(&data->lock, NULL);
+    portable_mutex_init(&data->lock);
 
     c1 = avs_new_value_clip(clip);
     avs_release_clip(clip);

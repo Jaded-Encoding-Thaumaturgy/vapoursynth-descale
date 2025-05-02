@@ -31,10 +31,14 @@ if libtype in ['vapoursynth', 'both']
     deps += [vs]
 endif
 if host_machine.system() == 'windows'
-    # Statically link things on Windows.
-    m_dep = cc.find_library('m', static: true, required: false)
-    p_dep = cc.find_library('winpthread', static: true)
-    deps += [m_dep, p_dep]
+    if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+        # Statically link things on Windows.
+        m_dep = cc.find_library('m', static: true, required: false)
+        p_dep = cc.find_library('winpthread', static: true)
+        deps += [m_dep, p_dep]
+    else
+        m_dep = []
+    endif
     if libtype in ['avisynth', 'both']
         deps += [cc.find_library('AviSynth', dirs: meson.current_source_dir())]
     endif
