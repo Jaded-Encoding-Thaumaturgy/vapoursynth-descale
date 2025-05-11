@@ -1,5 +1,5 @@
-project('Descale', 'c',
-    default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99'],
+project('Descale', 'c', 'cpp',
+    default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99', 'cpp_std=c++20'],
     meson_version: '>=0.56.0',
     version: '11'
 )
@@ -23,7 +23,8 @@ if libtype in ['vapoursynth', 'both']
 endif
 
 if libtype in ['avisynth', 'both']
-    sources += ['src/avsplugin.c']
+    includedirs += ['avs_c_api_loader']
+    sources += ['src/avsplugin.cpp', 'avs_c_api_loader/avs_c_api_loader.cpp']
 endif
 
 if libtype in ['vapoursynth', 'both']
@@ -39,9 +40,6 @@ if host_machine.system() == 'windows'
     else
         m_dep = []
     endif
-    if libtype in ['avisynth', 'both']
-        deps += [cc.find_library('AviSynth', dirs: meson.current_source_dir())]
-    endif
     if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
                                            # the _same_ file to multiple directories with meson
         installdir = join_paths(get_option('libdir'), 'vapoursynth')
@@ -52,10 +50,6 @@ else
     m_dep = cc.find_library('m', required: false)
     p_dep = cc.find_library('pthread')
     deps += [m_dep, p_dep]
-    if libtype in ['avisynth', 'both']
-        avs = dependency('avisynth')
-        deps += [avs]
-    endif
     if libtype in ['vapoursynth', 'both']
         installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
     else
@@ -64,7 +58,13 @@ else
 endif
 
 if host_machine.cpu_family().startswith('x86')
-    add_project_arguments('-DDESCALE_X86', '-mfpmath=sse', '-msse2', language : 'c')
+    x86_args = ['-DDESCALE_X86', '-mfpmath=sse', '-msse2']
+
+    add_project_arguments(x86_args, language : 'c')
+
+    if libtype in ['avisynth', 'both']
+        add_project_arguments(x86_args, language : 'cpp')
+    endif
 
     sources += ['src/x86/cpuinfo_x86.c']
 

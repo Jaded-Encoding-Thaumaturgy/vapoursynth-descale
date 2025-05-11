@@ -24,38 +24,38 @@
 #ifndef DESCALE_H
 #define DESCALE_H
 
-#include <stdbool.h>
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
+#include <stdbool.h>
 
 typedef enum DescaleMode
 {
     DESCALE_MODE_BILINEAR = 1,
-    DESCALE_MODE_BICUBIC  = 2,
-    DESCALE_MODE_LANCZOS  = 3,
+    DESCALE_MODE_BICUBIC = 2,
+    DESCALE_MODE_LANCZOS = 3,
     DESCALE_MODE_SPLINE16 = 4,
     DESCALE_MODE_SPLINE36 = 5,
     DESCALE_MODE_SPLINE64 = 6,
-    DESCALE_MODE_POINT    = 7,
-    DESCALE_MODE_CUSTOM   = 8,
+    DESCALE_MODE_POINT = 7,
+    DESCALE_MODE_CUSTOM = 8,
 
-    DESCALE_FLAG_SCALE    = 1 << 8
+    DESCALE_FLAG_SCALE = 1 << 8
 } DescaleMode;
-
 
 typedef enum DescaleDir
 {
     DESCALE_DIR_HORIZONTAL = 0,
-    DESCALE_DIR_VERTICAL   = 1
+    DESCALE_DIR_VERTICAL = 1
 } DescaleDir;
-
 
 typedef enum DescaleBorder
 {
     DESCALE_BORDER_MIRROR = 0,
-    DESCALE_BORDER_ZERO   = 1,
+    DESCALE_BORDER_ZERO = 1,
     DESCALE_BORDER_REPEAT = 2
 } DescaleBorder;
-
 
 typedef enum DescaleOpt
 {
@@ -64,13 +64,11 @@ typedef enum DescaleOpt
     DESCALE_OPT_AVX2 = 2
 } DescaleOpt;
 
-
 typedef struct DescaleCustomKernel
 {
-    double (*f)(double x, void *user_data);
-    void *user_data;
+    double (*f)(double x, void* user_data);
+    void* user_data;
 } DescaleCustomKernel;
-
 
 // Optional struct members must be initialized to 0 if not used
 typedef struct DescaleParams
@@ -81,15 +79,14 @@ typedef struct DescaleParams
     double param1;      // required if mode is BICUBIC
     double param2;      // required if mode is BICUBIC
     double blur;        // optional
-    int post_conv_size;                         // zero if post_conv not set
-    double *post_conv;                          // optional
+    int post_conv_size; // zero if post_conv not set
+    double* post_conv;  // optional
     double shift;       // optional
     double active_dim;  // always required; usually equal to dst_dim
     int has_ignore_mask;
-    enum DescaleBorder border_handling;        // optional
-    struct DescaleCustomKernel custom_kernel;  // required if mode is CUSTOM
+    enum DescaleBorder border_handling;       // optional
+    struct DescaleCustomKernel custom_kernel; // required if mode is CUSTOM
 } DescaleParams;
-
 
 typedef struct DescaleCore
 {
@@ -97,29 +94,33 @@ typedef struct DescaleCore
     int dst_dim;
     bool upscale;
     int bandwidth;
-    float **upper;
-    float **lower;
-    float *diagonal;
-    float *weights;
-    double *multiplied_weights;
-    int *weights_left_idx;
-    int *weights_right_idx;
-    int *weights_top_idx;
-    int *weights_bot_idx;
+    float** upper;
+    float** lower;
+    float* diagonal;
+    float* weights;
+    double* multiplied_weights;
+    int* weights_left_idx;
+    int* weights_right_idx;
+    int* weights_top_idx;
+    int* weights_bot_idx;
     int weights_columns;
 } DescaleCore;
 
-
 typedef struct DescaleAPI
 {
-    struct DescaleCore *(*create_core)(int src_dim, int dst_dim, struct DescaleParams *params);
-    void (*free_core)(struct DescaleCore *core);
-    void (*process_vectors)(struct DescaleCore *core, enum DescaleDir dir, int vector_count,
-                            int src_stride, int imask_stride, int dst_stride, const float *srcp, const unsigned char *imaskp, float *dstp);
+    struct DescaleCore* (*create_core)(int src_dim, int dst_dim, struct DescaleParams* params);
+    void (*free_core)(struct DescaleCore* core);
+    void (*process_vectors)(
+        struct DescaleCore* core, enum DescaleDir dir, int vector_count, int src_stride, int imask_stride, int dst_stride,
+        const float* srcp, const unsigned char* imaskp, float* dstp
+    );
 } DescaleAPI;
 
-
 struct DescaleAPI get_descale_api(enum DescaleOpt opt);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 
 #endif  // DESCALE_H
