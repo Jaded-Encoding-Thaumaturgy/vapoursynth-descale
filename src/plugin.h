@@ -43,17 +43,6 @@ struct DescaleData
 };
 
 
-static bool string_is_equal_ignore_case(const char *s1, const char *s2)
-{
-    int i;
-    for (i = 0; s1[i] != '\0'; i++) {
-        if (tolower(s1[i]) != tolower(s2[i]))
-            return false;
-    }
-    return s1[i] == s2[i];
-}
-
-
 static void initialize_descale_data(struct DescaleData *dd)
 {
     if (dd->process_h) {
