@@ -164,7 +164,7 @@ static inline double cube(double x)
 }
 
 
-static double calculate_weight(enum DescaleMode mode, int support, double distance, double b, double c, double blur, struct DescaleCustomKernel *ck)
+static double calculate_weight(enum DescaleMode mode, int taps, double distance, double b, double c, double blur, struct DescaleCustomKernel *ck)
 {
     distance = fabs(distance) / blur;
 
@@ -182,7 +182,7 @@ static double calculate_weight(enum DescaleMode mode, int support, double distan
             return 0.0;
 
     } else if (mode == DESCALE_MODE_LANCZOS) {
-        return distance < support ? sinc(distance) * sinc(distance / support) : 0.0;
+        return distance < taps ? sinc(distance) * sinc(distance / taps) : 0.0;
 
     } else if (mode == DESCALE_MODE_SPLINE16) {
         if (distance < 1.0) {
@@ -247,7 +247,7 @@ static double round_halfup(double x)
 
 // Most of this is taken from zimg 
 // https://github.com/sekrit-twc/zimg/blob/ce27c27f2147fbb28e417fbf19a95d3cf5d68f4f/src/zimg/resize/filter.cpp#L227
-static void scaling_weights(enum DescaleMode mode, int support, int src_dim, int dst_dim, double param1, double param2, double blur, double shift, double active_dim, enum DescaleBorder border_handling, struct DescaleCustomKernel *ck, double **weights)
+static void scaling_weights(enum DescaleMode mode, int support, int taps, int src_dim, int dst_dim, double param1, double param2, double blur, double shift, double active_dim, enum DescaleBorder border_handling, struct DescaleCustomKernel *ck, double **weights)
 {
     *weights = calloc(src_dim * dst_dim, sizeof (double));
     double ratio = (double)dst_dim / active_dim;
@@ -260,7 +260,7 @@ static void scaling_weights(enum DescaleMode mode, int support, int src_dim, int
         double begin_pos = round_halfup(pos - filter_size / 2.0) + 0.5;
         for (int j = 0; j < filter_size; j++) {
             double xpos = begin_pos + j;
-            total += calculate_weight(mode, support, xpos - pos, param1, param2, blur, ck);
+            total += calculate_weight(mode, taps, xpos - pos, param1, param2, blur, ck);
         }
         if (total == 0) {
             total = DBL_EPSILON;
@@ -286,7 +286,7 @@ static void scaling_weights(enum DescaleMode mode, int support, int src_dim, int
             }
 
             int idx = (int)floor(real_pos);
-            (*weights)[i * src_dim + idx] += calculate_weight(mode, support, xpos - pos, param1, param2, blur, ck) / total;
+            (*weights)[i * src_dim + idx] += calculate_weight(mode, taps, xpos - pos, param1, param2, blur, ck) / total;
         }
     }
 }
@@ -741,30 +741,30 @@ static void descale_process_vectors_c(struct DescaleCore *core, enum DescaleDir 
 
 static struct DescaleCore *create_core(int src_dim, int dst_dim, struct DescaleParams *params)
 {
-    int support;
+    int taps;
     struct DescaleCore core = {0};
 
     if (params->mode == DESCALE_MODE_BILINEAR) {
-        support = 1;
+        taps = 1;
     } else if (params->mode == DESCALE_MODE_BICUBIC) {
-        support = 2;
+        taps = 2;
     } else if (params->mode == DESCALE_MODE_LANCZOS) {
-        support = params->taps;
+        taps = params->taps;
     } else if (params->mode == DESCALE_MODE_SPLINE16) {
-        support = 2;
+        taps = 2;
     } else if (params->mode == DESCALE_MODE_SPLINE36) {
-        support = 3;
+        taps = 3;
     } else if (params->mode == DESCALE_MODE_SPLINE64) {
-        support = 4;
+        taps = 4;
     } else if (params->mode == DESCALE_MODE_POINT) {
-        support = 0;
+        taps = 0;
     } else if (params->mode == DESCALE_MODE_CUSTOM) {
-        support = params->taps;
+        taps = params->taps;
     } else {
         return NULL;
     }
 
-    support = ceil(support * params->blur);
+    int support = ceil(taps * params->blur);
 
     if (support == 0 && params->mode != DESCALE_MODE_POINT)
         return NULL;
@@ -785,7 +785,7 @@ static struct DescaleCore *create_core(int src_dim, int dst_dim, struct DescaleP
     double *multiplied_weights;
     double *ldlt;
 
-    scaling_weights(params->mode, support, dst_dim, src_dim, params->param1, params->param2, params->blur, params->shift, params->active_dim, params->border_handling, &params->custom_kernel, &weights);
+    scaling_weights(params->mode, support, taps, dst_dim, src_dim, params->param1, params->param2, params->blur, params->shift, params->active_dim, params->border_handling, &params->custom_kernel, &weights);
     if (params->post_conv_size) {
         convolve_weights(dst_dim, src_dim, params->post_conv_size, weights, params->post_conv);
         core.bandwidth += 4 * (params->post_conv_size - 1);
