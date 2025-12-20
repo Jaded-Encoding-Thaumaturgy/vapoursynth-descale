@@ -11,6 +11,9 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        libtype: [vapoursynth, avisynth]
 
     defaults:
       run:
@@ -24,17 +27,41 @@ jobs:
 
     - uses: msys2/setup-msys2@v2
       with:
-        msystem: mingw64
+        msystem: ucrt64
         update: true
-        install: mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-gcc mingw-w64-x86_64-vapoursynth
+        install: git mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vapoursynth
+
+    - name: Checkout AviSynth Submodule
+      if: matrix.libtype != 'vapoursynth'
+      run: git submodule update --init --recursive --depth 1
+
+    - name: AviSynth+ Headers
+      if: matrix.libtype != 'vapoursynth'
+      uses: actions/checkout@v4
+      with:
+        repository: AviSynth/AviSynthPlus
+        ref: 1291fec311c5602de4c112611347e150c50d7b1c
+        path: avs-headers
+        sparse-checkout: avs_core/include
 
     - name: Configure and build
       run: |
-        meson setup builddir --buildtype release
+        MESON_ARGS=(
+          "builddir"
+          "-Dlibtype=${{ matrix.libtype }}"
+          "--buildtype=release"
+          "--prefer-static"
+        )
+        if [[ "${{ matrix.libtype }}" != "vapoursynth" ]]; then
+          MESON_ARGS+=(
+          "-Dcpp_args=-I../avs-headers/avs_core/include"
+          "-Dcpp_link_args=['-static-libgcc', '-static-libstdc++', '-static']")
+        fi
+        meson setup "${MESON_ARGS[@]}"
         meson compile -C builddir
 
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: descale-win64
-        path: builddir/libdescale.dll
+        name: descale-win64-${{ matrix.libtype }}
+        path: builddir/*.dll
