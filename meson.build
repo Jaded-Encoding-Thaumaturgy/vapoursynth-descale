@@ -4,6 +4,8 @@ project('Descale', 'c',
     version: '11'
 )
 
+# Languages and compile flags
+
 libtype = get_option('libtype')
 
 use_cpp = libtype in ['avisynth', 'both']
@@ -23,17 +25,12 @@ add_global_arguments(['-D_XOPEN_SOURCE=700'], language: languages)
 
 cc = meson.get_compiler('c')
 
-includedirs = ['include', 'src']
+# Sources and dependencies
 
 sources = ['src/descale.c']
-
+includedirs = ['include', 'src']
 libs = []
-
 deps = []
-
-if libtype in ['vapoursynth', 'both']
-    sources += ['src/vsplugin.c']
-endif
 
 if libtype in ['avisynth', 'both']
     sources += ['src/avsplugin.cpp']
@@ -41,36 +38,23 @@ if libtype in ['avisynth', 'both']
 endif
 
 if libtype in ['vapoursynth', 'both']
+    sources += ['src/vsplugin.c']
     vs = dependency('vapoursynth').partial_dependency(compile_args: true, includes: true)
     deps += [vs]
 endif
+
 if host_machine.system() == 'windows'
     # Statically link things on Windows.
     m_dep = cc.find_library('m', static: true, required: false)
     p_dep = cc.find_library('winpthread', static: true)
     deps += [m_dep, p_dep]
-    if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
-                                           # the _same_ file to multiple directories with meson
-        installdir = join_paths(get_option('libdir'), 'vapoursynth')
-    else
-        installdir = join_paths(get_option('libdir'), 'avisynth')
-    endif
 else
     m_dep = cc.find_library('m', required: false)
     p_dep = cc.find_library('pthread')
     deps += [m_dep, p_dep]
-    if libtype in ['vapoursynth', 'both']
-        installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
-    else
-        avs = dependency('avisynth', required: false)
-        avs_libdir = ''
-        if avs.found()
-            avs_libdir = avs.get_variable(pkgconfig: 'libdir', default_value: '')
-        endif
-
-        installdir = join_paths(avs_libdir == '' ? get_option('libdir') : avs_libdir, 'avisynth')
-    endif
 endif
+
+# Architecture-dependent logic
 
 if host_machine.cpu_family().startswith('x86')
     add_project_arguments('-DDESCALE_X86', '-mfpmath=sse', '-msse2', language : languages)
@@ -85,8 +69,9 @@ if host_machine.cpu_family().startswith('x86')
             )
 endif
 
+# Windows version information
+
 if host_machine.system() == 'windows'
-    # Windows Version Information
     windows = import('windows')
 
     project_version_parts = meson.project_version().split('.')
@@ -125,6 +110,30 @@ if host_machine.system() == 'windows'
     sources += compiled_rc
 endif
 
+# Install path logic
+
+if host_machine.system() == 'windows'
+    if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
+                                           # the _same_ file to multiple directories with meson
+        installdir = join_paths(get_option('libdir'), 'vapoursynth')
+    else
+        installdir = join_paths(get_option('libdir'), 'avisynth')
+    endif
+else
+    if libtype in ['vapoursynth', 'both']
+        installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
+    else
+        avs = dependency('avisynth', required: false)
+        avs_libdir = ''
+        if avs.found()
+            avs_libdir = avs.get_variable(pkgconfig: 'libdir', default_value: '')
+        endif
+
+        installdir = join_paths(avs_libdir == '' ? get_option('libdir') : avs_libdir, 'avisynth')
+    endif
+endif
+
+# Descale plugin
 
 shared_module('descale', sources,
     dependencies: deps,
