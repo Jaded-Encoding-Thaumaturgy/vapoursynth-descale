@@ -85,6 +85,46 @@ if host_machine.cpu_family().startswith('x86')
             )
 endif
 
+if host_machine.system() == 'windows'
+    # Windows Version Information
+    windows = import('windows')
+
+    project_version_parts = meson.project_version().split('.')
+    version_major = project_version_parts[0].to_int()
+    version_minor = project_version_parts.length() > 1 ? project_version_parts[1].to_int() : 0
+    version_patch = project_version_parts.length() > 2 ? project_version_parts[2].to_int() : 0
+    version_build = project_version_parts.length() > 3 ? project_version_parts[3].to_int() : 0
+
+    conf_data = configuration_data()
+    conf_data.set('VERSION_MAJOR', version_major)
+    conf_data.set('VERSION_MINOR', version_minor)
+    conf_data.set('VERSION_PATCH', version_patch)
+    conf_data.set('VERSION_BUILD', version_build)
+
+    target_apis_strs = {
+        'vapoursynth': 'VapourSynth',
+        'avisynth': 'AviSynthPlus',
+        'both': 'VapourSynth and AviSynthPlus',
+    }
+
+    conf_data.set_quoted('FILE_DESCRIPTION', 'Video/Image filter to undo upscaling for ' + target_apis_strs[libtype])
+    conf_data.set_quoted('INTERNAL_NAME', meson.project_name().to_lower())
+    conf_data.set_quoted('ORIGINAL_FILENAME', 'lib' + meson.project_name().to_lower() + '.dll')
+    conf_data.set_quoted('PRODUCT_NAME', meson.project_name())
+    conf_data.set10('PROJECT_DEBUG_BUILD', get_option('buildtype') == 'debug')
+
+    windows_rc_configured = configure_file(
+        input: 'src/descale.rc.in',
+        output: 'descale.rc',
+        configuration: conf_data
+    )
+    compiled_rc = windows.compile_resources(
+        windows_rc_configured,
+        include_directories: includedirs
+    )
+    sources += compiled_rc
+endif
+
 
 shared_module('descale', sources,
     dependencies: deps,
