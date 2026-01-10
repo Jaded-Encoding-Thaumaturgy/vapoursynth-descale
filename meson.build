@@ -1,10 +1,19 @@
 project('Descale', 'c',
-    default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99'],
+    default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99', 'cpp_std=c++20'],
     meson_version: '>=0.56.0',
     version: '11'
 )
 
-add_global_arguments(['-D_XOPEN_SOURCE=700'], language: 'c')
+libtype = get_option('libtype')
+
+use_cpp = libtype in ['avisynth', 'both']
+languages = ['c']
+if use_cpp
+    add_languages('cpp', required: true, native: false)
+    languages += 'cpp'
+endif
+
+add_global_arguments(['-D_XOPEN_SOURCE=700'], language: languages)
 
 cc = meson.get_compiler('c')
 
@@ -16,14 +25,12 @@ libs = []
 
 deps = []
 
-libtype = get_option('libtype')
-
 if libtype in ['vapoursynth', 'both']
     sources += ['src/vsplugin.c']
 endif
 
 if libtype in ['avisynth', 'both']
-    sources += ['src/avsplugin.c']
+    sources += ['src/avsplugin.cpp']
 endif
 
 if libtype in ['vapoursynth', 'both']
@@ -60,7 +67,7 @@ else
 endif
 
 if host_machine.cpu_family().startswith('x86')
-    add_project_arguments('-DDESCALE_X86', '-mfpmath=sse', '-msse2', language : 'c')
+    add_project_arguments('-DDESCALE_X86', '-mfpmath=sse', '-msse2', language : languages)
 
     sources += ['src/x86/cpuinfo_x86.c']
 
