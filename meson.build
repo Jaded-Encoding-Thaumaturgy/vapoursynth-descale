@@ -131,8 +131,9 @@ else
     endif
 endif
 
-if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
-                                       # the _same_ file to multiple directories with meson
+if libtype in ['vapoursynth', 'both']
+    # We cannot install the _same_ file to multiple directories with meson, so just install it to
+    # one here and, if necessary, install a copy to the other location below.
     installdir = vsinstalldir
 else
     installdir = avsinstalldir
@@ -140,7 +141,7 @@ endif
 
 # Descale plugin
 
-shared_module('descale', sources,
+descale_module = shared_module('descale', sources,
     dependencies: deps,
     include_directories: includedirs,
     link_with: libs,
@@ -148,3 +149,29 @@ shared_module('descale', sources,
     install: true,
     install_dir: installdir
 )
+
+# Installation
+
+if libtype == 'both'
+    suffixes = {
+        'windows': 'dll',
+        'darwin': 'dylib',
+        'linux': 'so',
+    }
+
+    filename = 'libdescale_avs.' + suffixes[host_machine.system()]
+
+    python = find_program('python3', 'python', required: true)
+
+    custom_target('descale_avs_copy',
+        input: descale_module,
+        output: filename,
+        command: [
+            python, '-c',
+            'import shutil, sys; shutil.copy2(sys.argv[1], sys.argv[2])',
+            '@INPUT@', '@OUTPUT@'
+        ],
+        install: true,
+        install_dir: avsinstalldir
+    )
+endif
