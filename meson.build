@@ -113,24 +113,29 @@ endif
 # Install path logic
 
 if host_machine.system() == 'windows'
-    if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
-                                           # the _same_ file to multiple directories with meson
-        installdir = join_paths(get_option('libdir'), 'vapoursynth')
-    else
-        installdir = join_paths(get_option('libdir'), 'avisynth')
-    endif
+    vsinstalldir = join_paths(get_option('libdir'), 'vapoursynth')
+    avsinstalldir = join_paths(get_option('libdir'), 'avisynth')
 else
     if libtype in ['vapoursynth', 'both']
-        installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
-    else
+        vsinstalldir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
+    endif
+
+    if libtype in ['avisynth', 'both']
         avs = dependency('avisynth', required: false)
         avs_libdir = ''
         if avs.found()
             avs_libdir = avs.get_variable(pkgconfig: 'libdir', default_value: '')
         endif
 
-        installdir = join_paths(avs_libdir == '' ? get_option('libdir') : avs_libdir, 'avisynth')
+        avsinstalldir = join_paths(avs_libdir == '' ? get_option('libdir') : avs_libdir, 'avisynth')
     endif
+endif
+
+if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
+                                       # the _same_ file to multiple directories with meson
+    installdir = vsinstalldir
+else
+    installdir = avsinstalldir
 endif
 
 # Descale plugin
