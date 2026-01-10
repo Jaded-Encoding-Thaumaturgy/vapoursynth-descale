@@ -1,6 +1,6 @@
 project('avs_c_api_loader', 'cpp', version: '1.3.0', meson_version: '>=1.0.0', default_options: ['cpp_std=c++20'])
 
-avsinc = dependency('avisynth').partial_dependency(includes: true, compile_args: true)
+avsinc = dependency('avisynth', fallback: 'avisynth_headers').partial_dependency(includes: true, compile_args: true)
 
 subdir('src')
 

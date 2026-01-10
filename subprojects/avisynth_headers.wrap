@@ -1,0 +1,5 @@
+[wrap-git]
+directory = avisynth_headers
+url = https://github.com/AviSynth/AviSynthPlus
+revision = 1291fec311c5602de4c112611347e150c50d7b1c
+patch_directory = avisynth_headers
