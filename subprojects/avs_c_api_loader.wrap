@@ -1,0 +1,5 @@
+[wrap-git]
+directory = avs_c_api_loader
+url = https://github.com/Asd-g/avisynthplus-c-api-dynamic-loader
+revision = 1.3.0
+patch_directory = avs_c_api_loader

@@ -31,6 +31,7 @@ endif
 
 if libtype in ['avisynth', 'both']
     sources += ['src/avsplugin.cpp']
+    deps += dependency('avs_c_api_loader', fallback: 'avs_c_api_loader')
 endif
 
 if libtype in ['vapoursynth', 'both']
@@ -42,9 +43,6 @@ if host_machine.system() == 'windows'
     m_dep = cc.find_library('m', static: true, required: false)
     p_dep = cc.find_library('winpthread', static: true)
     deps += [m_dep, p_dep]
-    if libtype in ['avisynth', 'both']
-        deps += [cc.find_library('AviSynth', dirs: meson.current_source_dir())]
-    endif
     if libtype in ['vapoursynth', 'both']  # I'm not sure if it is possible to install
                                            # the _same_ file to multiple directories with meson
         installdir = join_paths(get_option('libdir'), 'vapoursynth')
@@ -55,14 +53,16 @@ else
     m_dep = cc.find_library('m', required: false)
     p_dep = cc.find_library('pthread')
     deps += [m_dep, p_dep]
-    if libtype in ['avisynth', 'both']
-        avs = dependency('avisynth')
-        deps += [avs]
-    endif
     if libtype in ['vapoursynth', 'both']
         installdir = join_paths(vs.get_variable(pkgconfig: 'libdir'), 'vapoursynth')
     else
-        installdir = join_paths(avs.get_variable(pkgconfig: 'libdir'), 'avisynth')
+        avs = dependency('avisynth', required: false)
+        avs_libdir = ''
+        if avs.found()
+            avs_libdir = avs.get_variable(pkgconfig: 'libdir', default_value: '')
+        endif
+
+        installdir = join_paths(avs_libdir == '' ? get_option('libdir') : avs_libdir, 'avisynth')
     endif
 endif
 
