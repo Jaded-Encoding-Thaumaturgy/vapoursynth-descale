@@ -13,6 +13,12 @@ if use_cpp
     languages += 'cpp'
 endif
 
+foreach lang : languages
+  if meson.get_compiler(lang).get_argument_syntax() == 'msvc'
+    error('MSVC and MSVC-like compilers like clang-cl are not supported. Please use a GCC-like toolchain.')
+  endif
+endforeach
+
 add_global_arguments(['-D_XOPEN_SOURCE=700'], language: languages)
 
 cc = meson.get_compiler('c')
