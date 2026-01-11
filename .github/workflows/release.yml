@@ -1,0 +1,112 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'avs releases'
+        required: true
+      prerelease:
+        description: 'Mark as Pre-release'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        libtype: [vapoursynth, avisynth]
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ucrt64
+        update: true
+        install: git mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-vapoursynth
+
+    - name: Checkout AviSynth Submodule
+      if: matrix.libtype != 'vapoursynth'
+      run: git submodule update --init --recursive --depth 1
+
+    - name: AviSynth+ Headers
+      if: matrix.libtype != 'vapoursynth'
+      uses: actions/checkout@v4
+      with:
+        repository: AviSynth/AviSynthPlus
+        ref: 1291fec311c5602de4c112611347e150c50d7b1c
+        path: avs-headers
+        sparse-checkout: avs_core/include
+
+    - name: Configure and build
+      run: |
+        MESON_ARGS=(
+          "builddir"
+          "-Dlibtype=${{ matrix.libtype }}"
+          "--buildtype=release"
+          "--prefer-static"
+        )
+
+        if [[ "${{ matrix.libtype }}" != "vapoursynth" ]]; then
+          MESON_ARGS+=(
+          "-Dcpp_args=-I../avs-headers/avs_core/include"
+          "-Dcpp_link_args=['-static-libgcc', '-static-libstdc++', '-static']")
+        fi
+
+        meson setup "${MESON_ARGS[@]}"
+        meson compile -C builddir
+
+    - name: Rename Artifact
+      run: |
+        mv builddir/libdescale.dll builddir/libdescale_${{ matrix.libtype }}.dll
+
+    - name: Upload Artifact for Release
+      uses: actions/upload-artifact@v4
+      with:
+        name: dll-${{ matrix.libtype }}
+        path: builddir/libdescale_${{ matrix.libtype }}.dll
+        retention-days: 1
+
+  publish-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download DLLs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dll-*
+          merge-multiple: true
+          path: release_files
+
+      - name: Copy Docs and Zip
+        run: |
+          cp README.md LICENSE release_files/
+          cd release_files
+          zip -r ../descale_${{ inputs.tag_name }}.zip ./*
+
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: Release ${{ inputs.tag_name }}
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          files: descale_${{ inputs.tag_name }}.zip
+          generate_release_notes: true
