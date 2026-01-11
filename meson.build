@@ -1,4 +1,4 @@
-project('Descale', 'c', 'cpp',
+project('Descale', 'c',
     default_options: ['buildtype=release', 'b_ndebug=if-release', 'c_std=c99', 'cpp_std=c++20'],
     meson_version: '>=0.56.0',
     version: '11'
@@ -27,22 +27,37 @@ if libtype in ['vapoursynth', 'both']
 endif
 
 if libtype in ['avisynth', 'both']
-    includedirs += ['avs_c_api_loader']
-    sources += ['src/avsplugin.cpp', 'avs_c_api_loader/avs_c_api_loader.cpp']
+    add_languages('cpp', required: true, native: false)
+
+    includedirs += ['avs_c_api_loader/src']
+    sources += ['src/avsplugin.cpp', 'avs_c_api_loader/src/avs_c_api_loader.cpp']
 endif
 
 if libtype in ['vapoursynth', 'both']
-    vs_dep = dependency('vapoursynth').partial_dependency(compile_args: true, includes: true)
-    deps += [vs_dep]
+    vs_dep = dependency('vapoursynth', required: false)
+    if vs_dep.found()
+        deps += [vs_dep.partial_dependency(compile_args: true, includes: true)]
+    endif
 endif
+
+if libtype in ['avisynth', 'both']
+    avs_dep = dependency('avisynth', required: false)
+    if avs_dep.found()
+        deps += [avs_dep.partial_dependency(compile_args: true, includes: true)]
+    endif
+endif
+
+installdir = ''
+
 if host_machine.system() == 'windows'
-    if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-        # Statically link things on Windows.
-        m_dep = cc.find_library('m', static: true, required: false)
-        p_dep = cc.find_library('winpthread', static: true)
+    if libtype in ['vapoursynth', 'both']
+        m_dep = cc.find_library('m', required: false)
+        p_dep = cc.find_library('winpthread')
         deps += [m_dep, p_dep]
+        installdir = join_paths(get_option('libdir'), 'vapoursynth')
     else
         m_dep = []
+        installdir = join_paths(get_option('libdir'), 'avisynth')
     endif
 
     # Windows Version Information
@@ -94,9 +109,32 @@ if host_machine.system() == 'windows'
     )
     resource_objects += compiled_rc
 else
-    m_dep = cc.find_library('m', required: false)
-    p_dep = cc.find_library('pthread')
-    deps += [m_dep, p_dep]
+    if libtype in ['vapoursynth', 'both']
+        m_dep = cc.find_library('m', required: false)
+        p_dep = cc.find_library('pthread')
+        deps += [m_dep, p_dep]
+
+        vs_pkg_libdir = ''
+        if vs_dep.found()
+            vs_pkg_libdir = vs_dep.get_variable(pkgconfig: 'libdir', default_value: '')
+        endif
+        if vs_pkg_libdir != ''
+            installdir = join_paths(vs_pkg_libdir, 'vapoursynth')
+        else
+            installdir = join_paths(get_option('libdir'), 'vapoursynth')
+        endif
+    else
+        avs_pkg_libdir = ''
+        if avs_dep.found()
+            avs_pkg_libdir = avs_dep.get_variable(pkgconfig: 'libdir', default_value: '')
+        endif
+
+        if avs_pkg_libdir != ''
+            installdir = join_paths(avs_pkg_libdir, 'avisynth')
+        else
+            installdir = join_paths(get_option('libdir'), 'avisynth')
+        endif
+    endif
 endif
 
 if host_machine.cpu_family().startswith('x86')
@@ -118,74 +156,53 @@ if host_machine.cpu_family().startswith('x86')
             )
 endif
 
+
 descale_module = shared_module('descale', sources + resource_objects,
     dependencies: deps,
     include_directories: includedirs,
     link_with: libs,
     name_prefix: 'lib',
-    install: false
+    install: true,
+    install_dir: installdir
 )
 
-# Manual installation
-install_dirs_to_use = []
-
-if libtype in ['vapoursynth', 'both']
-    vs_installdir = ''
+if libtype == 'both'
     if host_machine.system() == 'windows'
-        vs_installdir = join_paths(get_option('libdir'), 'vapoursynth')
+        suffix = 'dll'
+    elif host_machine.system() == 'darwin'
+        suffix = 'dylib'
     else
-        vs_pkg_libdir = vs_dep.get_variable(pkgconfig: 'libdir', default_value: '')
-        if vs_pkg_libdir == ''
-            message('Warning: VapourSynth pkg-config "libdir" not found. Using default libdir for VapourSynth plugin installation.')
-            vs_installdir = get_option('prefix') / get_option('libdir') / 'vapoursynth'
-        else
-            vs_installdir = join_paths(vs_pkg_libdir, 'vapoursynth')
-        endif
+        suffix = 'so'
     endif
-    install_dirs_to_use += [vs_installdir]
-endif
 
-if libtype in ['avisynth', 'both']
-    avs_installdir = ''
+    filename = 'libdescale_avs.' + suffix
+
+    # Determine AVS install path
     if host_machine.system() == 'windows'
-        avs_installdir = join_paths(get_option('libdir'), 'avisynth')
+        avs_install_dir = join_paths(get_option('libdir'), 'avisynth')
     else
-        avs_pkg_dep = dependency('avisynth', required: false, method: 'pkg-config')
-        avs_base_libdir = ''
-        if avs_pkg_dep.found()
-            avs_base_libdir = avs_pkg_dep.get_variable(pkgconfig: 'libdir', default_value: '')
+        avs_pkg_libdir = ''
+        if avs_dep.found()
+            avs_pkg_libdir = avs_dep.get_variable(pkgconfig: 'libdir', default_value: '')
         endif
 
-        if avs_base_libdir != ''
-            avs_installdir = join_paths(avs_base_libdir, 'avisynth')
-            message('Using Avisynth pkg-config libdir for plugin installation: ' + avs_installdir)
+        if avs_pkg_libdir != ''
+            avs_install_dir = join_paths(avs_pkg_libdir, 'avisynth')
         else
-            message('Warning: Avisynth pkg-config "libdir" not found or Avisynth pkg-config itself not found. Using default libdir for Avisynth plugin installation.')
-            avs_installdir = get_option('prefix') / get_option('libdir') / 'avisynth'
+            avs_install_dir = get_option('prefix') / get_option('libdir') / 'avisynth'
         endif
     endif
-    install_dirs_to_use += [avs_installdir]
-endif
 
-if install_dirs_to_use.length() == 0 and libtype != 'none'
-    error('No installation directory determined for libtype: ' + libtype)
-endif
-
-if install_dirs_to_use.length() > 0
-    message('Setting up installation of descale module to: ' + ' | '.join(install_dirs_to_use))
-
-    install_script_path = join_paths(meson.current_source_dir(), 'install_plugin.py')
-
-    foreach installdir : install_dirs_to_use
-        meson.add_install_script(
-            python.full_path(),
-            install_script_path,
-            descale_module,
-            installdir
-        )
-    endforeach
-else
-    if libtype != 'none'
-        message('Descale module built but not installed as no valid install directories were determined for libtype: ' + libtype)
-    endif
+    # Create the copy
+    custom_target('descale_avs_copy',
+        input: descale_module,
+        output: filename,
+        command: [
+            python, '-c',
+            'import shutil, sys; shutil.copy2(sys.argv[1], sys.argv[2])',
+            '@INPUT@', '@OUTPUT@'
+        ],
+        install: true,
+        install_dir: avs_install_dir
+    )
 endif
