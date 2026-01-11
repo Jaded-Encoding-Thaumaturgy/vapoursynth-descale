@@ -24,10 +24,6 @@
 #ifndef DESCALE_H
 #define DESCALE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
-
 #include <stdbool.h>
 
 typedef enum DescaleMode
@@ -117,10 +113,6 @@ typedef struct DescaleAPI
 } DescaleAPI;
 
 struct DescaleAPI get_descale_api(enum DescaleOpt opt);
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
 
 
 #endif  // DESCALE_H

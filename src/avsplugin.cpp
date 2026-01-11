@@ -32,9 +32,12 @@
 #include <stdexcept>
 #include <system_error>
 
-#include "avs_c_api_loader.hpp"
+extern "C" {
 #include "descale.h"
 #include "plugin.h"
+}
+
+#include "avs_c_api_loader.hpp"
 
 struct AVSDescaleData
 {
@@ -504,7 +507,7 @@ const char* AVSC_CC avisynth_c_plugin_init(AVS_ScriptEnvironment* env)
 {
     static constexpr int REQUIRED_INTERFACE_VERSION{9};
     static constexpr int REQUIRED_BUGFIX_VERSION{2};
-    static constexpr std::initializer_list<std::string_view> required_functions{
+    static constexpr std::string_view required_functions_storage[]{
         "avs_pool_free",           // avs loader helper functions
         "avs_release_clip",        // avs loader helper functions
         "avs_release_value",       // avs loader helper functions
@@ -528,6 +531,7 @@ const char* AVSC_CC avisynth_c_plugin_init(AVS_ScriptEnvironment* env)
         "avs_pool_allocate",
         "avs_set_to_clip"
     };
+    static constexpr std::span<const std::string_view> required_functions{ required_functions_storage };
 
     if (!avisynth_c_api_loader::get_api(env, REQUIRED_INTERFACE_VERSION, REQUIRED_BUGFIX_VERSION, required_functions)) {
         std::cerr << avisynth_c_api_loader::get_last_error() << std::endl;
