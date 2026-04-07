@@ -1,0 +1,56 @@
+[build-system]
+requires = [
+    "hatchling>=1.27.0",
+    "vapoursynth>=74",
+    "meson",
+    "ninja",
+    "packaging",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "vapoursynth-descale"
+dynamic = ["version"]
+description = "Video/Image filter to undo upscaling."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [
+    { name = "Jaded Encoding Thaumaturgy", email = "jaded.encoding.thaumaturgy@gmail.com" },
+]
+maintainers = [
+    { name = "Jaded Encoding Thaumaturgy", email = "jaded.encoding.thaumaturgy@gmail.com" },
+]
+dependencies = ["vapoursynth>=74"]
+
+[dependency-groups]
+dev = ["hatchling>=1.27.0", "packaging"]
+
+[project.urls]
+"Source Code" = "https://github.com/Jaded-Encoding-Thaumaturgy/vapoursynth-descale"
+"Bug Tracker" = "https://github.com/Jaded-Encoding-Thaumaturgy/vapoursynth-descale/issues"
+"Contact" = "https://discord.gg/XTpc6Fa9eB"
+
+[tool.hatch.version]
+path = "meson.build"
+pattern = "version: '(?P<version>\\d*)'"
+
+[tool.hatch.build.targets.sdist]
+include = ["include", "src", "meson.build", "meson_options.txt"]
+
+[tool.hatch.build.targets.wheel]
+include = ["vapoursynth/plugins"]
+artifacts = [
+    "vapoursynth/plugins/*.dylib",
+    "vapoursynth/plugins/*.so",
+    "vapoursynth/plugins/*.dll",
+]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_hooks.py"
+
+[tool.cibuildwheel]
+build-frontend = { name = "uv", args = ["--verbose"] }
+build = "cp312-*"
+skip = "*-win32 *-manylinux_i686 *-musllinux_i686"
