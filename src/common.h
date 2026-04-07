@@ -12,6 +12,20 @@
 #define DSMAX(a, b) ((a) > (b) ? (a) : (b))
 #define DSMIN(a, b) ((a) > (b) ? (b) : (a))
 
+// Taken from zimg https://github.com/sekrit-twc/zimg
+#if defined(_MSC_VER)
+    #define DESCALE_FORCE_INLINE __forceinline
+#elif defined(__GNUC__)
+    #define DESCALE_FORCE_INLINE __attribute__((always_inline))
+#else
+    #define DESCALE_FORCE_INLINE
+#endif
+
+#if defined(_MSC_VER) || defined(__GNUC__)
+    #define restrict __restrict
+#else
+    #define restrict
+#endif
 
 static inline int ceil_n(int x, int n)
 {
