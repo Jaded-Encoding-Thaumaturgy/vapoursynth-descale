@@ -69,21 +69,28 @@ Then we solve `LD y = A' b` with forward substitution, and finally `L' x = y` wi
 
 We now have the original vector `x`.
 
+## Installation
+
+Pre-compiled wheels are available on PyPI for:
+
+- **Windows**: x86_64
+- **Linux**: x86_64 and aarch64 (glibc & musl)
+- **macOS**: x86_64 (10.13+) and arm64 (11.0+)
+
+```bash
+pip install vapoursynth-descale
+```
 
 ## Compilation
 
-By default only the VapourSynth plugin is compiled.
-To build the AviSynth+ plugin, add `-Dlibtype=avisynth` or `-Dlibtype=both` to the meson command below.
+Building the VapourSynth plugin:
 
-### Linux
-
-```
-$ meson setup build
-$ ninja -C build
+```bash
+uv build --wheel
 ```
 
-### Cross-compilation for Windows
-```
-$ meson setup build --cross-file cross-mingw-x86_64.txt
-$ ninja -C build
+For the AviSynth+ plugin:
+
+```bash
+meson setup build -Dlibtype=avisynth && meson compile -C build
 ```
