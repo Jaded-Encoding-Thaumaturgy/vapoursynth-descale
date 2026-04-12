@@ -520,7 +520,7 @@ static void VS_CC descale_create(const VSMap *in, VSMap *out, void *user_data, V
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit2(VSPlugin *plugin, const VSPLUGINAPI *vspapi)
 {
-    vspapi->configPlugin("tegaf.asi.xe", "descale", "Undo linear interpolation", VS_MAKE_VERSION(11, 0), VAPOURSYNTH_API_VERSION, 0, plugin);
+    vspapi->configPlugin("tegaf.asi.xe", "descale", "Undo linear interpolation", VS_MAKE_VERSION(12, 0), VAPOURSYNTH_API_VERSION, 0, plugin);
 
 #define DESCALE_BASE_ARGS "src:vnode;width:int;height:int;"
 #define DESCALE_COM_OUT_ARGS \
