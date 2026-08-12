@@ -22,6 +22,7 @@
 
 
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -63,6 +64,31 @@ static const char *VS_CC get_error(const char *funcname, const char *error) {
     memcpy(out + flen, ": ", 2);
     memcpy(out + flen + 2, error, elen);
     memset(out + flen + 2 + elen, 0, 1);
+
+    return out;
+}
+
+/**
+ * get_error() but builds the error message from a printf-style format string.
+ */
+static const char *VS_CC get_error_fmt(const char *funcname, const char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+    const int length = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+    if (length < 0)
+        return get_error(funcname, fmt);
+
+    const size_t flen = strlen(funcname);
+    char *out = malloc(flen + 2 + (size_t)length + 1);
+
+    memcpy(out, funcname, flen);
+    memcpy(out + flen, ": ", 2);
+
+    va_start(ap, fmt);
+    vsnprintf(out + flen + 2, (size_t)length + 1, fmt, ap);
+    va_end(ap);
 
     return out;
 }
@@ -318,7 +344,42 @@ static void VS_CC descale_create(const VSMap *in, VSMap *out, void *user_data, V
         params.has_ignore_mask = 1;
         const VSVideoInfo *mvi = vsapi->getVideoInfo(d.ignore_mask_node);
         if (mvi->format.sampleType != stInteger || mvi->format.bitsPerSample != 8) {
-            vsapi->mapSetError(out, get_error(funcname, "Ignore mask must use 8 bit integer samples."));    // TODO improve this?
+            vsapi->mapSetError(
+                out,
+                get_error_fmt(
+                    funcname,
+                    "Ignore mask must use 8 bit integer samples, but got %d bit %s samples.",
+                    mvi->format.bitsPerSample, mvi->format.sampleType == stFloat ? "float" : "integer"
+                )
+            );
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.ignore_mask_node);
+            return;
+        }
+
+        if (mvi->width != d.dd.src_width || mvi->height != d.dd.src_height) {
+            vsapi->mapSetError(
+                out,
+                get_error_fmt(
+                    funcname,
+                    "Ignore mask dimensions must match the source clip: mask is %dx%d, source is %dx%d.",
+                    mvi->width, mvi->height, d.dd.src_width, d.dd.src_height
+                )
+            );
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.ignore_mask_node);
+            return;
+        }
+
+        if (mvi->numFrames != d.vi.numFrames) {
+            vsapi->mapSetError(
+                out,
+                get_error_fmt(
+                    funcname,
+                    "Ignore mask length must match the source clip: mask has %d frames, source has %d frames.",
+                    mvi->numFrames, d.vi.numFrames
+                )
+            );
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.ignore_mask_node);
             return;
@@ -326,11 +387,16 @@ static void VS_CC descale_create(const VSMap *in, VSMap *out, void *user_data, V
 
         if (mvi->format.numPlanes != d.vi.format.numPlanes
                 || mvi->format.subSamplingH != d.vi.format.subSamplingH
-                || mvi->format.subSamplingW != d.vi.format.subSamplingW
-                || mvi->width != d.dd.src_width
-                || mvi->height != d.dd.src_height
-                || mvi->numFrames != d.vi.numFrames) {
-            vsapi->mapSetError(out, get_error(funcname, "Ignore mask format must match clip format."));    // TODO improve this?
+                || mvi->format.subSamplingW != d.vi.format.subSamplingW) {
+            vsapi->mapSetError(
+                out,
+                get_error_fmt(
+                    funcname,
+                    "Ignore mask format must match the source clip: mask has %d plane(s) and subsampling %dx%d, source has %d plane(s) and subsampling %dx%d.",
+                    mvi->format.numPlanes, mvi->format.subSamplingW, mvi->format.subSamplingH,
+                    d.vi.format.numPlanes, d.vi.format.subSamplingW, d.vi.format.subSamplingH
+                )
+            );
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.ignore_mask_node);
             return;
